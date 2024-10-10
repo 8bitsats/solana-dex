@@ -1,4 +1,4 @@
-import { Col, Row} from 'antd';
+import { Col, Row } from 'antd';
 import React, { useRef, useEffect, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { useMarket, useOrderbook, useMarkPrice } from '../utils/markets';
@@ -62,21 +62,20 @@ export default function Orderbook({
 }) {
   const [markPrice] = useMarkPrice();
   const [orderbook] = useOrderbook(90);
-  // let { baseCurrency, quoteCurrency } = useMarket();
   const market = useMarket();
   const marketName = market.marketName;
   const currentOrderbookData = useRef(null);
   const lastOrderbookData = useRef(null);
 
   const [orderbookData, setOrderbookData] = useState(null);
-  const [baseCurrency, setBaseCurrency] = useState("");
-  const [quoteCurrency, setQuoteCurrency] = useState("");
+  const [baseCurrency, setBaseCurrency] = useState('');
+  const [quoteCurrency, setQuoteCurrency] = useState('');
 
   useInterval(() => {
     if (
       !currentOrderbookData.current ||
       JSON.stringify(currentOrderbookData.current) !==
-      JSON.stringify(lastOrderbookData.current)
+        JSON.stringify(lastOrderbookData.current)
     ) {
       let bids = orderbook?.bids || [];
       let asks = orderbook?.asks || [];
@@ -96,16 +95,14 @@ export default function Orderbook({
       setOrderbookData({ bids: bidsToDisplay, asks: asksToDisplay });
     }
 
-    
     let symbols = [];
     if (marketName) {
-      symbols = marketName.split("/");
+      symbols = marketName.split('/');
     }
     if (symbols.length > 1) {
       setBaseCurrency(symbols[0]);
       setQuoteCurrency(symbols[1]);
     }
-    return symbols[0], symbols[1];
   }, 250);
 
   useEffect(() => {
@@ -137,16 +134,16 @@ export default function Orderbook({
   return (
     <FloatingElement
       style={
-        smallScreen ? { flex: 1, overflow: 'hidden',width:'100%' } : { overflow: 'hidden',width:'100%' }
+        smallScreen
+          ? { flex: 1, overflow: 'hidden', width: '100%' }
+          : { overflow: 'hidden', width: '100%' }
       }
     >
-      {/* <Divider> */}
       <Title className="title">Orderbook</Title>
-      {/* </Divider> */}
-      {1 ? ( //smallScreen ? (
+      {true ? (
         <>
           <MarkPriceComponent markPrice={markPrice} />
-          <div className='orderbook-line'>
+          <div className="orderbook-line">
             <strong>Buyer</strong>
             <strong>Seller</strong>
           </div>
@@ -207,9 +204,7 @@ export default function Orderbook({
                       textOverflow: 'ellipsis',
                       overflow: 'hidden',
                     }}
-                  >
-                    {/* Price ({quoteCurrency}) */}
-                  </Col>
+                  ></Col>
                   <Col
                     span={12}
                     style={{
@@ -301,15 +296,20 @@ const OrderbookRow = React.memo(
     const { market } = useMarket();
 
     useEffect(() => {
-      // eslint-disable-next-line
-      !element.current?.classList.contains('flash') &&
-        element.current?.classList.add('flash');
-      const id = setTimeout(
-        () =>
-          element.current?.classList.contains('flash') &&
-          element.current?.classList.remove('flash'),
-        250,
-      );
+      const addFlashClass = () => {
+        if (element.current && !element.current.classList.contains('flash')) {
+          element.current.classList.add('flash');
+        }
+      };
+
+      const removeFlashClass = () => {
+        if (element.current && element.current.classList.contains('flash')) {
+          element.current.classList.remove('flash');
+        }
+      };
+
+      addFlashClass();
+      const id = setTimeout(removeFlashClass, 250);
       return () => clearTimeout(id);
     }, [price, size]);
 
@@ -373,33 +373,19 @@ const OrderbookRow = React.memo(
 
 const MarkPriceComponent = React.memo(
   ({ markPrice }) => {
-    const { market } = useMarket();
     const previousMarkPrice = usePrevious(markPrice);
 
     let markPriceColor =
       markPrice > previousMarkPrice
         ? '#0AD171'
         : markPrice < previousMarkPrice
-          ? '#FD499D'
-          : 'white';
-
-    let formattedMarkPrice =
-      markPrice &&
-      market?.tickSize &&
-      markPrice.toFixed(getDecimalCount(market.tickSize));
+        ? '#FD499D'
+        : 'white';
 
     return (
       <MarkPriceTitle justify="center">
         <Col style={{ color: markPriceColor }}>
           {markPrice && <>{markPrice.toFixed(4)}</>}
-
-          {/* {markPrice > previousMarkPrice && (
-            <ArrowUpOutlined style={{ marginRight: 5 }} />
-          )}
-          {markPrice < previousMarkPrice && (
-            <ArrowDownOutlined style={{ marginRight: 5 }} />
-          )}
-          {formattedMarkPrice || '----'} */}
         </Col>
       </MarkPriceTitle>
     );

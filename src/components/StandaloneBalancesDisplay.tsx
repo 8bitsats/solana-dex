@@ -30,11 +30,16 @@ const ActionButton = styled(Button)`
   width: 270px;
   height: 60px;
   border-radius: 12px;
-  background: ##E6BE4B;
+  background: #E6BE4B;
   background-color: #E6BE4B;
   color: black;
   font-weight: 600;
   font-size: 25px;
+`;
+
+const StyledFloatingElement = styled(FloatingElement)`
+  flex: 1;
+  padding-top: 9px;
 `;
 
 export default function StandaloneBalancesDisplay() {
@@ -48,11 +53,6 @@ export default function StandaloneBalancesDisplay() {
   const baseCurrencyBalances =
     balances && balances.find((b) => b.coin === baseCurrency);
   const quoteCurrencyBalances =
-    balances && balances.find((b) => b.coin === quoteCurrency);
-
-  async function onSettleFunds() {
-    if (!wallet) {
-      notify({
         message: 'Wallet not connected',
         description: 'wallet is undefined',
         type: 'error',
@@ -79,7 +79,7 @@ export default function StandaloneBalancesDisplay() {
     if (!baseCurrencyAccount) {
       notify({
         message: 'Error settling funds',
-        description: 'Open orders account is undefined',
+        description: 'Base currency account is undefined',
         type: 'error',
       });
       return;
@@ -87,7 +87,7 @@ export default function StandaloneBalancesDisplay() {
     if (!quoteCurrencyAccount) {
       notify({
         message: 'Error settling funds',
-        description: 'Open orders account is undefined',
+        description: 'Quote currency account is undefined',
         type: 'error',
       });
       return;
@@ -105,7 +105,7 @@ export default function StandaloneBalancesDisplay() {
     } catch (e) {
       notify({
         message: 'Error settling funds',
-        description: e.message,
+        description: e instanceof Error ? e.message : 'Unknown error',
         type: 'error',
       });
     }
@@ -131,16 +131,14 @@ export default function StandaloneBalancesDisplay() {
       ],
     ];
   return (
-    <FloatingElement style={{ flex: 1, paddingTop: 9 }}>
+    <FloatingElement style={{ flex: 1, paddingTop: 9 } as React.CSSProperties}>
       <div className='title'>My Wallet</div>
       <div
         style={{
           width: '100%',
-          // borderBottom: '1px solid #1C274F',
           fontSize: 17,
           paddingBottom: 20,
           marginTop: 48
-
         }}
       >
         Wallet Balance
@@ -148,24 +146,20 @@ export default function StandaloneBalancesDisplay() {
       {formattedBalances.map(
         ([currency, balances, baseOrQuote, mint], index) => (
           <React.Fragment key={index}>
-
             <div className="assert">
               <div className='currency'>{currency}</div>
-              <div>{balances && balances.wallet || "-"} </div>
+              <div>{(balances && balances.wallet) || "-"} </div>
             </div>
           </React.Fragment>
         ),
       )}
 
-
       <div
         style={{
           width: '100%',
-          // borderBottom: '1px solid #1C274F',
           fontSize: 17,
           paddingBottom: 20,
           marginTop: 48
-
         }}
       >
         Unsettled balances
@@ -173,22 +167,17 @@ export default function StandaloneBalancesDisplay() {
       {formattedBalances.map(
         ([currency, balances, baseOrQuote, mint], index) => (
           <React.Fragment key={index}>
-
             <div className="assert">
               <div className='currency'>{currency}</div>
-              <div>{balances && balances.unsettled || "-"} </div>
+              <div>{(balances && balances.unsettled) || "-"} </div>
             </div>
           </React.Fragment>
         ),
       )}
 
-
-
       <ActionButton size="small" onClick={onSettleFunds}>
         Settle
       </ActionButton>
-
-
     </FloatingElement>
   );
 }

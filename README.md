@@ -1,63 +1,166 @@
-# Serum DEX UI
+import { Button } from 'antd';
+import React from 'react';
+import FloatingElement from './layout/FloatingElement';
+import styled from 'styled-components';
+import {
+useBalances,
+useMarket,
+useSelectedBaseCurrencyAccount,
+useSelectedOpenOrdersAccount,
+useSelectedQuoteCurrencyAccount,
+} from '../utils/markets';
+import { useWallet } from '../utils/wallet';
+import { settleFunds } from '../utils/send';
+import { useSendConnection } from '../utils/connection';
+import { notify } from '../utils/notifications';
+import { Balances } from '../utils/types';
 
-AKIAVQOSSMSP3NSE7254
-1XWD8qtaDojWbPu/lM88DiyPaQB6nL72VLyoFfhy
-An implementation of a UI for the Serum DEX.
+const ActionButton = styled(Button)` color: rgba(241, 241, 242, 0.75); font-size: 12px; display: 'inline-block'; padding-right: 15px; margin:auto; display:flex; align-items:center; justify-content:center; padding-left: 15px; border-radius: 4px; border: 1px solid rgba(241, 241, 242, 0.5); width: 270px; height: 60px; border-radius: 12px; background: #E6BE4B; background-color: #E6BE4B; color: black; font-weight: 600; font-size: 25px;`;
 
-### Running the UI
+const StyledFloatingElement = styled(FloatingElement)` flex: 1; padding-top: 9px;`;
 
-Run `yarn` to install dependencies, then run `yarn start` to start a development server or `yarn build` to create a production build that can be served by a static file server.
+export default function StandaloneBalancesDisplay() {
+const { baseCurrency, quoteCurrency, market } = useMarket();
+const balances = useBalances();
+const openOrdersAccount = useSelectedOpenOrdersAccount(true);
+const connection = useSendConnection();
+const { wallet } = useWallet();
+const baseCurrencyAccount = useSelectedBaseCurrencyAccount();
+const quoteCurrencyAccount = useSelectedQuoteCurrencyAccount();
+const baseCurrencyBalances =
+balances && balances.find((b) => b.coin === baseCurrency);
+const quoteCurrencyBalances =
+balances && balances.find((b) => b.coin === quoteCurrency);
 
-### Collect referral fees
+async function onSettleFunds() {
+if (!wallet) {
+notify({
+message: 'Wallet not connected',
+description: 'wallet is undefined',
+type: 'error',
+});
+return;
+}
 
-If you are hosting a public UI using this codebase, you can collect referral fees when your users trade through your site.
+    if (!market) {
+      notify({
+        message: 'Error settling funds',
+        description: 'market is undefined',
+        type: 'error',
+      });
+      return;
+    }
+    if (!openOrdersAccount) {
+      notify({
+        message: 'Error settling funds',
+        description: 'Open orders account is undefined',
+        type: 'error',
+      });
+      return;
+    }
+    if (!baseCurrencyAccount) {
+      notify({
+        message: 'Error settling funds',
+        description: 'Base currency account is undefined',
+        type: 'error',
+      });
+      return;
+    }
+    if (!quoteCurrencyAccount) {
+      notify({
+        message: 'Error settling funds',
+        description: 'Quote currency account is undefined',
+        type: 'error',
+      });
+      return;
+    }
 
-To do so, set the `REACT_APP_USDT_REFERRAL_FEES_ADDRESS` and `REACT_APP_USDC_REFERRAL_FEES_ADDRESS` environment variables to the addresses of your USDT and USDC SPL token accounts.
+    try {
+      await settleFunds({
+        market,
+        openOrders: openOrdersAccount,
+        connection,
+        wallet,
+        baseCurrencyAccount,
+        quoteCurrencyAccount,
+      });
+    } catch (e) {
+      notify({
+        message: 'Error settling funds',
+        description: e instanceof Error ? e.message : 'Unknown error',
+        type: 'error',
+      });
+    }
 
-You may want to put these in local environment files (e.g. `.env.development.local`, `.env.production.local`). See the [documentation](https://create-react-app.dev/docs/adding-custom-environment-variables) on environment variables for more information.
+}
 
-NOTE: remember to re-build your app before deploying for your referral addresses to be reflected.
+const formattedBalances: [
+string | undefined,
+Balances | undefined,
+string,
+string | undefined,
+][] = [
+[
+baseCurrency,
+baseCurrencyBalances,
+'base',
+market?.baseMintAddress.toBase58(),
+],
+[
+quoteCurrency,
+quoteCurrencyBalances,
+'quote',
+market?.quoteMintAddress.toBase58(),
+],
+];
+return (
+<StyledFloatingElement>
+<div className='title'>My Wallet</div>
+<div
+style={{
+          width: '100%',
+          fontSize: 17,
+          paddingBottom: 20,
+          marginTop: 48
+        }} >
+Wallet Balance
+</div>
+{formattedBalances.map(
+([currency, balances, baseOrQuote, mint], index) => (
+<React.Fragment key={index}>
+<div className="assert">
+<div className='currency'>{currency}</div>
+<div>{(balances && balances.wallet) || "-"} </div>
+</div>
+</React.Fragment>
+),
+)}
 
-### Add Trading View charts
+      <div
+        style={{
+          width: '100%',
+          fontSize: 17,
+          paddingBottom: 20,
+          marginTop: 48
+        }}
+      >
+        Unsettled balances
+      </div>
+      {formattedBalances.map(
+        ([currency, balances, baseOrQuote, mint], index) => (
+          <React.Fragment key={index}>
+            <div className="assert">
+              <div className='currency'>{currency}</div>
+              <div>{(balances && balances.unsettled) || "-"} </div>
+            </div>
+          </React.Fragment>
+        ),
+      )}
 
-It is possible to add OHLCV candles built from on chain data using [Bonfida's API](https://docs.bonfida.com). Here is how to do it:
+      <ActionButton size="small" onClick={onSettleFunds}>
+        Settle
+      </ActionButton>
+    </StyledFloatingElement>
 
-1. Get access to the [TradingView Charting Library](https://github.com/tradingview/charting_library/) repository. This is a **private repository** and it will **return a 404 if you don't have access to it**. To get access to the repository please refer to [TradingView's website](https://www.tradingview.com/HTML5-stock-forex-bitcoin-charting-library/)
-
-2. Once you have access to the Charting Library repository:
-
-- Copy `charting_library` folder from https://github.com/tradingview/charting_library/ to `/public` and to `/src` folders.
-- Copy `datafeeds` folder from https://github.com/tradingview/charting_library/ to `/public`.
-
-3. Import `TVChartContainer` from `/src/components/TradingView` and add it to your `TradePage.tsx`. The TradingView widget will work out of the box using [Bonfida's](https://bonfida.com) datafeed.
-
-4. Remove the following from the `tsconfig.json`
-
-```json
-"./src/components/TradingView/index.tsx"
-```
-
-5. Uncomment the following in `public/index.html`
-
-```
-<script src="%PUBLIC_URL%/datafeeds/udf/dist/polyfills.js"></script>
-<script src="%PUBLIC_URL%/datafeeds/udf/dist/bundle.js">
-```
-
-<p align="center">
-<img height="300" src="https://i.imgur.com/UyFKmTv.png">
-</p>
-
----
-
-See the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started) for other commands and options.
-
----
-
-See [A technical introduction to the Serum DEX](https://projectserum.com/blog/serum-dex-introduction) to learn more about the Serum DEX.
-
-See [serum-js](https://github.com/project-serum/serum-js) for DEX client-side code. Serum DEX UI uses this library.
-
-See [sol-wallet-adapter](https://github.com/project-serum/sol-wallet-adapter) for an explanation of how the Serum DEX UI interacts with wallet services to sign and send requests to the Serum DEX.
-
-See [spl-token-wallet](https://github.com/project-serum/spl-token-wallet) for an implementation of such a wallet, live at [sollet.io](https://sollet.io).
+);
+}
